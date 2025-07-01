@@ -9,9 +9,21 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Search,
 } from "lucide-react";
+import { useState } from "react";
 
 export default function Index() {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // TODO: Implement search functionality for bug bounty hunters
+      console.log("Searching for:", searchQuery);
+    }
+  };
+
   const metrics = [
     {
       title: "Active Threats",
@@ -98,6 +110,39 @@ export default function Index() {
             <p className="mt-2 text-muted-foreground">
               Real-time security monitoring and threat assessment
             </p>
+          </div>
+
+          {/* URI/IP Search Bar for Bug Bounty Hunters */}
+          <div className="mb-8">
+            <DashboardCard
+              title="Target Search"
+              icon={<Search className="h-5 w-5" />}
+              className="bg-cyber-card-bg/50"
+            >
+              <form onSubmit={handleSearch} className="space-y-4">
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Enter URI, IP address, or domain (e.g., example.com, 192.168.1.1)"
+                      className="w-full px-4 py-3 bg-cyber-dark-bg border border-cyber-border-gray rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyber-blue focus:border-transparent transition-colors"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-cyber-blue text-cyber-dark-bg font-medium rounded-lg hover:bg-cyber-blue/90 focus:outline-none focus:ring-2 focus:ring-cyber-blue focus:ring-offset-2 focus:ring-offset-cyber-dark-bg transition-colors"
+                  >
+                    <Search className="h-5 w-5" />
+                  </button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Search for targets, perform reconnaissance, and analyze
+                  security posture
+                </p>
+              </form>
+            </DashboardCard>
           </div>
 
           {/* Metrics Grid */}
