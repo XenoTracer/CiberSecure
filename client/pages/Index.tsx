@@ -1,5 +1,6 @@
 import Navigation from "@/components/Navigation";
 import DashboardCard from "@/components/DashboardCard";
+import CyberButton from "@/components/ui/cyber-button";
 import {
   Shield,
   Activity,
@@ -10,19 +11,57 @@ import {
   XCircle,
   Clock,
   Search,
+  RefreshCw,
+  Download,
+  Bell,
+  Settings,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [notifications, setNotifications] = useState(3);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // TODO: Implement search functionality for bug bounty hunters
-      console.log("Searching for:", searchQuery);
+      setIsSearching(true);
+      try {
+        // Simulate API call
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        console.log("Searching for:", searchQuery);
+        // You would implement actual search functionality here
+      } finally {
+        setIsSearching(false);
+      }
     }
   };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Simulate data refresh
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setLastUpdated(new Date());
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const clearNotifications = () => {
+    setNotifications(0);
+  };
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLastUpdated(new Date());
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const metrics = [
     {
@@ -31,6 +70,7 @@ export default function Index() {
       trend: "+12%",
       isAlert: true,
       icon: <AlertTriangle className="h-5 w-5" />,
+      onClick: () => alert("View Active Threats Details"),
     },
     {
       title: "Systems Protected",
@@ -38,6 +78,7 @@ export default function Index() {
       trend: "+2%",
       isAlert: false,
       icon: <Shield className="h-5 w-5" />,
+      onClick: () => alert("View Protected Systems"),
     },
     {
       title: "Red Team Tests",
@@ -45,6 +86,7 @@ export default function Index() {
       trend: "-8%",
       isAlert: false,
       icon: <Activity className="h-5 w-5" />,
+      onClick: () => alert("View Red Team Test Results"),
     },
     {
       title: "Security Score",
@@ -52,6 +94,7 @@ export default function Index() {
       trend: "+5%",
       isAlert: false,
       icon: <TrendingUp className="h-5 w-5" />,
+      onClick: () => alert("View Security Score Details"),
     },
   ];
 
@@ -104,12 +147,50 @@ export default function Index() {
         <div className="px-4 py-8 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">
-              Dashboard Overview
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              Real-time security monitoring and threat assessment
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">
+                  Dashboard Overview
+                </h1>
+                <p className="mt-2 text-muted-foreground">
+                  Real-time security monitoring and threat assessment
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <CyberButton
+                    variant="outline"
+                    size="icon"
+                    onClick={clearNotifications}
+                    className="relative"
+                  >
+                    <Bell className="h-4 w-4" />
+                    {notifications > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-cyber-red text-xs text-white rounded-full flex items-center justify-center animate-pulse">
+                        {notifications}
+                      </span>
+                    )}
+                  </CyberButton>
+                </div>
+                <CyberButton
+                  variant="outline"
+                  size="icon"
+                  onClick={handleRefresh}
+                  loading={isRefreshing}
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                  />
+                </CyberButton>
+                <CyberButton variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </CyberButton>
+              </div>
+            </div>
           </div>
 
           {/* URI/IP Search Bar for Bug Bounty Hunters */}
@@ -130,12 +211,14 @@ export default function Index() {
                       className="w-full px-4 py-3 bg-cyber-dark-bg border border-cyber-border-gray rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyber-blue focus:border-transparent transition-colors"
                     />
                   </div>
-                  <button
+                  <CyberButton
                     type="submit"
-                    className="px-6 py-3 bg-cyber-blue text-cyber-dark-bg font-medium rounded-lg hover:bg-cyber-blue/90 focus:outline-none focus:ring-2 focus:ring-cyber-blue focus:ring-offset-2 focus:ring-offset-cyber-dark-bg transition-colors"
+                    size="lg"
+                    loading={isSearching}
+                    disabled={!searchQuery.trim()}
                   >
                     <Search className="h-5 w-5" />
-                  </button>
+                  </CyberButton>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Search for targets, perform reconnaissance, and analyze
@@ -152,13 +235,16 @@ export default function Index() {
                 key={metric.title}
                 title={metric.title}
                 icon={metric.icon}
-                className="text-center"
+                className="text-center group"
+                clickable
+                onClick={metric.onClick}
+                loading={isRefreshing}
               >
                 <div className="space-y-2">
                   <div
-                    className={`text-3xl font-bold ${
+                    className={`text-3xl font-bold transition-all duration-200 ${
                       metric.isAlert ? "text-cyber-red" : "text-cyber-blue"
-                    }`}
+                    } group-hover:scale-110`}
                   >
                     {metric.value}
                   </div>
@@ -182,6 +268,8 @@ export default function Index() {
             <DashboardCard
               title="System Status"
               icon={<Shield className="h-5 w-5" />}
+              clickable
+              onClick={() => alert("Opening System Status Details")}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -219,21 +307,41 @@ export default function Index() {
             <DashboardCard
               title="Recent Activity"
               icon={<Activity className="h-5 w-5" />}
+              clickable
+              onClick={() => alert("View All Activity Logs")}
             >
               <div className="space-y-4">
                 {recentActivity.map((activity, index) => (
                   <div
                     key={index}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-cyber-dark-bg/50"
+                    className="flex items-start gap-3 p-3 rounded-lg bg-cyber-dark-bg/50 hover:bg-cyber-dark-bg/70 transition-colors cursor-pointer"
+                    onClick={() =>
+                      alert(`Activity Details: ${activity.message}`)
+                    }
                   >
                     {getActivityIcon(activity.status)}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground">
+                      <p className="text-sm text-foreground hover:text-cyber-blue transition-colors">
                         {activity.message}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {activity.time}
                       </p>
+                    </div>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg
+                        className="h-4 w-4 text-cyber-blue"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
                     </div>
                   </div>
                 ))}
@@ -244,6 +352,8 @@ export default function Index() {
             <DashboardCard
               title="Risk Assessment"
               icon={<AlertTriangle className="h-5 w-5" />}
+              clickable
+              onClick={() => alert("Opening Risk Analysis Dashboard")}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -279,6 +389,8 @@ export default function Index() {
             <DashboardCard
               title="Team Performance"
               icon={<Users className="h-5 w-5" />}
+              clickable
+              onClick={() => alert("View Team Performance Analytics")}
             >
               <div className="space-y-4">
                 <div className="text-center mb-4">
