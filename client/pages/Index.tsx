@@ -1,6 +1,8 @@
 import Navigation from "@/components/Navigation";
 import DashboardCard from "@/components/DashboardCard";
 import CyberButton from "@/components/ui/cyber-button";
+import ScanResults from "@/components/ScanResults";
+import { scanningService, ScanResult } from "@/services/scanningService";
 import {
   Shield,
   Activity,
@@ -15,6 +17,8 @@ import {
   Download,
   Bell,
   Settings,
+  Target,
+  Terminal,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -24,16 +28,32 @@ export default function Index() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [notifications, setNotifications] = useState(3);
+  const [showScanResults, setShowScanResults] = useState(false);
+  const [activeScans, setActiveScans] = useState<ScanResult[]>([]);
+  const [realtimeMetrics, setRealtimeMetrics] = useState({
+    activeThreats: 3,
+    systemsProtected: 847,
+    redTeamTests: 24,
+    securityScore: 94,
+  });
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       setIsSearching(true);
       try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log("Searching for:", searchQuery);
-        // You would implement actual search functionality here
+        // Start real-time scanning
+        const scanId = await scanningService.startScan(searchQuery);
+        setShowScanResults(true);
+
+        // Simulate real-time threat updates
+        setTimeout(() => {
+          setRealtimeMetrics((prev) => ({
+            ...prev,
+            activeThreats: prev.activeThreats + Math.floor(Math.random() * 3),
+          }));
+          setNotifications((prev) => prev + 1);
+        }, 3000);
       } finally {
         setIsSearching(false);
       }
@@ -55,50 +75,116 @@ export default function Index() {
     setNotifications(0);
   };
 
-  // Auto-refresh every 30 seconds
+  // Real-time updates and scan monitoring
   useEffect(() => {
+    // Subscribe to scan updates
+    const unsubscribe = scanningService.onScanUpdate((scan) => {
+      setActiveScans((prev) => {
+        const index = prev.findIndex((s) => s.id === scan.id);
+        if (index >= 0) {
+          const updated = [...prev];
+          updated[index] = scan;
+          return updated;
+        }
+        return [...prev, scan];
+      });
+
+      // Update metrics based on scan results
+      if (scan.status === "completed" && scan.results.vulnerabilities) {
+        const criticalVulns = scan.results.vulnerabilities.filter(
+          (v) => v.severity === "critical",
+        ).length;
+        setRealtimeMetrics((prev) => ({
+          ...prev,
+          activeThreats: prev.activeThreats + criticalVulns,
+        }));
+        setNotifications((prev) => prev + criticalVulns);
+      }
+    });
+
+    // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       setLastUpdated(new Date());
+      // Simulate metric fluctuations
+      setRealtimeMetrics((prev) => ({
+        ...prev,
+        systemsProtected:
+          prev.systemsProtected + Math.floor(Math.random() * 5 - 2),
+        securityScore: Math.max(
+          85,
+          Math.min(99, prev.securityScore + Math.floor(Math.random() * 3 - 1)),
+        ),
+      }));
     }, 30000);
-    return () => clearInterval(interval);
+
+    // Load existing scans
+    setActiveScans(scanningService.getAllScans());
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   const metrics = [
     {
       title: "Active Threats",
-      value: "3",
-      trend: "+12%",
-      isAlert: true,
+      value: realtimeMetrics.activeThreats.toString(),
+      trend: realtimeMetrics.activeThreats > 5 ? "+25%" : "+12%",
+      isAlert: realtimeMetrics.activeThreats > 5,
       icon: <AlertTriangle className="h-5 w-5" />,
-      onClick: () => alert("View Active Threats Details"),
+      onClick: () => setShowScanResults(true),
     },
     {
       title: "Systems Protected",
-      value: "847",
+      value: realtimeMetrics.systemsProtected.toString(),
       trend: "+2%",
       isAlert: false,
       icon: <Shield className="h-5 w-5" />,
       onClick: () => alert("View Protected Systems"),
     },
     {
-      title: "Red Team Tests",
-      value: "24",
-      trend: "-8%",
+      title: "Active Scans",
+      value: activeScans
+        .filter((s) => s.status === "scanning")
+        .length.toString(),
+      trend: activeScans.length > 0 ? "Live" : "Idle",
       isAlert: false,
-      icon: <Activity className="h-5 w-5" />,
-      onClick: () => alert("View Red Team Test Results"),
+      icon: <Target className="h-5 w-5" />,
+      onClick: () => setShowScanResults(true),
     },
     {
       title: "Security Score",
-      value: "94%",
-      trend: "+5%",
-      isAlert: false,
+      value: `${realtimeMetrics.securityScore}%`,
+      trend:
+        realtimeMetrics.securityScore > 95
+          ? "+5%"
+          : realtimeMetrics.securityScore < 90
+            ? "-3%"
+            : "+1%",
+      isAlert: realtimeMetrics.securityScore < 90,
       icon: <TrendingUp className="h-5 w-5" />,
       onClick: () => alert("View Security Score Details"),
     },
   ];
 
   const recentActivity = [
+    ...activeScans.slice(-3).map((scan) => ({
+      type: "scan",
+      message: `Scan ${scan.status} for ${scan.target}`,
+      time:
+        scan.status === "completed" && scan.endTime
+          ? `${Math.round((Date.now() - scan.endTime.getTime()) / 60000)} minutes ago`
+          : scan.status === "scanning"
+            ? `Running (${scan.progress}%)`
+            : "Just started",
+      status:
+        scan.status === "completed"
+          ? "success"
+          : scan.status === "failed"
+            ? "critical"
+            : "info",
+    })),
     {
       type: "alert",
       message: "High-priority vulnerability detected in web server",
@@ -117,13 +203,7 @@ export default function Index() {
       time: "1 hour ago",
       status: "info",
     },
-    {
-      type: "alert",
-      message: "Unusual network traffic pattern detected",
-      time: "2 hours ago",
-      status: "warning",
-    },
-  ];
+  ].slice(0, 4);
 
   const getActivityIcon = (status: string) => {
     switch (status) {
@@ -193,12 +273,12 @@ export default function Index() {
             </div>
           </div>
 
-          {/* URI/IP Search Bar for Bug Bounty Hunters */}
+          {/* Professional Vulnerability Scanner */}
           <div className="mb-8">
             <DashboardCard
-              title="Target Search"
+              title="Vulnerability Scanner"
               icon={<Search className="h-5 w-5" />}
-              className="bg-cyber-card-bg/50"
+              className="bg-gradient-to-r from-cyber-card-bg/50 to-cyber-blue/5 border-cyber-blue/30"
             >
               <form onSubmit={handleSearch} className="space-y-4">
                 <div className="flex gap-3">
@@ -207,8 +287,8 @@ export default function Index() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Enter URI, IP address, or domain (e.g., example.com, 192.168.1.1)"
-                      className="w-full px-4 py-3 bg-cyber-dark-bg border border-cyber-border-gray rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyber-blue focus:border-transparent transition-colors"
+                      placeholder="Enter target: domain.com, 192.168.1.1, or https://example.com"
+                      className="w-full px-4 py-3 bg-cyber-dark-bg border border-cyber-border-gray rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyber-blue focus:border-cyber-blue/50 transition-all duration-200"
                     />
                   </div>
                   <CyberButton
@@ -216,14 +296,32 @@ export default function Index() {
                     size="lg"
                     loading={isSearching}
                     disabled={!searchQuery.trim()}
+                    className="px-8"
                   >
-                    <Search className="h-5 w-5" />
+                    {isSearching ? (
+                      <>
+                        <div className="animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                        Scanning...
+                      </>
+                    ) : (
+                      <>
+                        <Target className="h-5 w-5 mr-2" />
+                        Start Scan
+                      </>
+                    )}
                   </CyberButton>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Search for targets, perform reconnaissance, and analyze
-                  security posture
-                </p>
+                <div className="flex items-center justify-between text-sm">
+                  <p className="text-muted-foreground">
+                    Comprehensive security assessment: ports, vulns, subdomains,
+                    technologies
+                  </p>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span>⚡ Real-time results</span>
+                    <span>🔍 Deep scanning</span>
+                    <span>📊 Risk analysis</span>
+                  </div>
+                </div>
               </form>
             </DashboardCard>
           </div>
@@ -419,9 +517,62 @@ export default function Index() {
                 </div>
               </div>
             </DashboardCard>
+            {/* Live Scanning Activity */}
+            <DashboardCard
+              title="Live Scanning Activity"
+              icon={<Terminal className="h-5 w-5" />}
+              clickable
+              onClick={() => setShowScanResults(true)}
+            >
+              {activeScans.length > 0 ? (
+                <div className="space-y-3">
+                  {activeScans.slice(0, 3).map((scan) => (
+                    <div
+                      key={scan.id}
+                      className="flex items-center justify-between p-3 bg-cyber-dark-bg/50 rounded"
+                    >
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-foreground">
+                          {scan.target}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {scan.status === "scanning"
+                            ? `${scan.progress}% complete`
+                            : scan.status}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {scan.status === "scanning" && (
+                          <div className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse" />
+                        )}
+                        {getStatusIcon(scan.status)}
+                      </div>
+                    </div>
+                  ))}
+                  <CyberButton
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowScanResults(true)}
+                  >
+                    View All Scans
+                  </CyberButton>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No active scans</p>
+                  <p className="text-xs">Start a scan to monitor progress</p>
+                </div>
+              )}
+            </DashboardCard>
           </div>
         </div>
       </main>
+
+      {/* Scan Results Modal */}
+      {showScanResults && (
+        <ScanResults onClose={() => setShowScanResults(false)} />
+      )}
     </div>
   );
 }
