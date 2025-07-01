@@ -545,7 +545,7 @@ export default function Index() {
                         {scan.status === "scanning" && (
                           <div className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse" />
                         )}
-                        {getStatusIcon(scan.status)}
+                        {getActivityIcon(scan.status)}
                       </div>
                     </div>
                   ))}
