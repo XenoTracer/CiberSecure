@@ -131,8 +131,8 @@ export default function Index() {
 
   // Real-time updates and scan monitoring
   useEffect(() => {
-    // Subscribe to scan updates
-    const unsubscribe = scanningService.onScanUpdate((scan) => {
+    // Subscribe to quick scan updates
+    const unsubscribeQuick = scanningService.onScanUpdate((scan) => {
       setActiveScans((prev) => {
         const index = prev.findIndex((s) => s.id === scan.id);
         if (index >= 0) {
@@ -156,6 +156,73 @@ export default function Index() {
       }
     });
 
+    // Subscribe to comprehensive scan updates
+    const unsubscribeComprehensive = advancedScanningService.onScanUpdate(
+      (scan) => {
+        setComprehensiveScans((prev) => {
+          const index = prev.findIndex((s) => s.id === scan.id);
+          if (index >= 0) {
+            const updated = [...prev];
+            updated[index] = scan;
+            return updated;
+          }
+          return [...prev, scan];
+        });
+
+        // Update metrics based on comprehensive scan results
+        if (scan.status === "completed" && scan.results.vulnerabilities) {
+          const criticalVulns = scan.results.vulnerabilities.filter(
+            (v) => v.severity === "critical",
+          ).length;
+          setRealtimeMetrics((prev) => ({
+            ...prev,
+            activeThreats: prev.activeThreats + criticalVulns,
+            securityScore: scan.statistics.score,
+          }));
+          setNotifications((prev) => prev + criticalVulns);
+
+          // Generate report automatically
+          reportService.generateComprehensiveReport(scan, null, scan.target);
+          cveService.addNotification({
+            title: "Scan Report Generated",
+            message: `Comprehensive report available for ${scan.target}`,
+            type: "success",
+          });
+        }
+      },
+    );
+
+    // Subscribe to subdomain enumeration updates
+    const unsubscribeSubdomain = subdomainService.onEnumerationUpdate(
+      (enumeration) => {
+        setSubdomainEnumerations((prev) => {
+          const index = prev.findIndex((e) => e.id === enumeration.id);
+          if (index >= 0) {
+            const updated = [...prev];
+            updated[index] = enumeration;
+            return updated;
+          }
+          return [...prev, enumeration];
+        });
+
+        // Notify on completion
+        if (enumeration.status === "completed") {
+          cveService.addNotification({
+            title: "Subdomain Enumeration Complete",
+            message: `Found ${enumeration.totalFound} subdomains for ${enumeration.target}`,
+            type: "success",
+            metadata: { count: enumeration.totalFound },
+          });
+
+          // Generate subdomain report
+          reportService.generateSubdomainReport(
+            enumeration,
+            enumeration.target,
+          );
+        }
+      },
+    );
+
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       setLastUpdated(new Date());
@@ -173,9 +240,13 @@ export default function Index() {
 
     // Load existing scans
     setActiveScans(scanningService.getAllScans());
+    setComprehensiveScans(advancedScanningService.getAllScans());
+    setSubdomainEnumerations(subdomainService.getAllEnumerations());
 
     return () => {
-      unsubscribe();
+      unsubscribeQuick();
+      unsubscribeComprehensive();
+      unsubscribeSubdomain();
       clearInterval(interval);
     };
   }, []);
