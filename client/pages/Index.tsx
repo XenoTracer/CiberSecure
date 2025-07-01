@@ -52,9 +52,16 @@ export default function Index() {
     if (searchQuery.trim()) {
       setIsSearching(true);
       try {
-        // Start real-time scanning
-        const scanId = await scanningService.startScan(searchQuery);
-        setShowScanResults(true);
+        if (scanMode === "comprehensive") {
+          // Start comprehensive vulnerability scan
+          const scanId =
+            await advancedScanningService.startComprehensiveScan(searchQuery);
+          setShowAdvancedScan(true);
+        } else {
+          // Start quick scan
+          const scanId = await scanningService.startScan(searchQuery);
+          setShowScanResults(true);
+        }
 
         // Simulate real-time threat updates
         setTimeout(() => {
