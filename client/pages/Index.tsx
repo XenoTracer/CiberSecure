@@ -351,17 +351,68 @@ export default function Index() {
                     )}
                   </CyberButton>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <p className="text-muted-foreground">
-                    Comprehensive security assessment: ports, vulns, subdomains,
-                    technologies
-                  </p>
+                {/* Scan Mode Selection */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setScanMode("quick")}
+                      className={cn(
+                        "px-3 py-1 rounded text-sm font-medium transition-colors",
+                        scanMode === "quick"
+                          ? "bg-cyber-blue text-cyber-dark-bg"
+                          : "bg-cyber-card-bg text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      Quick Scan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScanMode("comprehensive")}
+                      className={cn(
+                        "px-3 py-1 rounded text-sm font-medium transition-colors",
+                        scanMode === "comprehensive"
+                          ? "bg-cyber-blue text-cyber-dark-bg"
+                          : "bg-cyber-card-bg text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      Comprehensive Scan
+                    </button>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeSubdomain}
+                        onChange={(e) => setIncludeSubdomain(e.target.checked)}
+                        className="w-4 h-4 rounded border-cyber-border-gray bg-cyber-dark-bg checked:bg-cyber-blue"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        Hunt Subdomains
+                      </span>
+                    </label>
+                  </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>⚡ Real-time results</span>
-                    <span>🔍 Deep scanning</span>
-                    <span>📊 Risk analysis</span>
+                    {scanMode === "comprehensive" ? (
+                      <>
+                        <span>🔬 20+ vulnerability tests</span>
+                        <span>📍 Path-based detection</span>
+                        <span>📊 Detailed reporting</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>⚡ Quick results</span>
+                        <span>🔍 Basic scanning</span>
+                        <span>📊 Simple reports</span>
+                      </>
+                    )}
+                    {includeSubdomain && <span>🌐 Subdomain hunting</span>}
                   </div>
                 </div>
+
+                <p className="text-sm text-muted-foreground">
+                  {scanMode === "comprehensive"
+                    ? "Deep vulnerability assessment with 20+ test categories including SQL injection, XSS, CSRF, file inclusion, and accurate CVE detection"
+                    : "Fast reconnaissance and basic vulnerability detection for quick assessments"}
+                </p>
               </form>
             </DashboardCard>
           </div>
