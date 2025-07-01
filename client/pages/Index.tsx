@@ -52,16 +52,42 @@ export default function Index() {
     if (searchQuery.trim()) {
       setIsSearching(true);
       try {
+        // Add notification for scan start
+        cveService.addNotification({
+          title: "Scan Started",
+          message: `${scanMode === "comprehensive" ? "Comprehensive" : "Quick"} scan initiated for ${searchQuery}`,
+          type: "info",
+        });
+
+        let scanId: string;
+
         if (scanMode === "comprehensive") {
           // Start comprehensive vulnerability scan
-          const scanId =
+          scanId =
             await advancedScanningService.startComprehensiveScan(searchQuery);
           setShowAdvancedScan(true);
         } else {
           // Start quick scan
-          const scanId = await scanningService.startScan(searchQuery);
+          scanId = await scanningService.startScan(searchQuery);
           setShowScanResults(true);
         }
+
+        // Start subdomain enumeration if enabled
+        if (includeSubdomain) {
+          const subdomainId =
+            await subdomainService.startSubdomainEnumeration(searchQuery);
+          cveService.addNotification({
+            title: "Subdomain Enumeration Started",
+            message: `Hunting subdomains for ${searchQuery}`,
+            type: "info",
+          });
+        }
+
+        // Search for recent CVEs related to the target
+        const targetDomain = searchQuery
+          .replace(/^https?:\/\//, "")
+          .split("/")[0];
+        cveService.searchCVEs(targetDomain);
 
         // Simulate real-time threat updates
         setTimeout(() => {
@@ -257,21 +283,7 @@ export default function Index() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="relative">
-                  <CyberButton
-                    variant="outline"
-                    size="icon"
-                    onClick={clearNotifications}
-                    className="relative"
-                  >
-                    <Bell className="h-4 w-4" />
-                    {notifications > 0 && (
-                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-cyber-red text-xs text-white rounded-full flex items-center justify-center animate-pulse">
-                        {notifications}
-                      </span>
-                    )}
-                  </CyberButton>
-                </div>
+                <NotificationBell />
                 <CyberButton
                   variant="outline"
                   size="icon"
