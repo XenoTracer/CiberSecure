@@ -47,6 +47,10 @@ export default function Index() {
     ComprehensiveScanResult[]
   >([]);
   const [scanMode, setScanMode] = useState<"quick" | "comprehensive">("quick");
+  const [includeSubdomain, setIncludeSubdomain] = useState(true);
+  const [subdomainEnumerations, setSubdomainEnumerations] = useState<
+    SubdomainEnumeration[]
+  >([]);
   const [realtimeMetrics, setRealtimeMetrics] = useState({
     activeThreats: 3,
     systemsProtected: 847,
