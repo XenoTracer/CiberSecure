@@ -2,7 +2,12 @@ import Navigation from "@/components/Navigation";
 import DashboardCard from "@/components/DashboardCard";
 import CyberButton from "@/components/ui/cyber-button";
 import ScanResults from "@/components/ScanResults";
+import ScanningDashboard from "@/components/ScanningDashboard";
 import { scanningService, ScanResult } from "@/services/scanningService";
+import {
+  advancedScanningService,
+  ComprehensiveScanResult,
+} from "@/services/advancedScanningService";
 import {
   Shield,
   Activity,
@@ -29,7 +34,12 @@ export default function Index() {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [notifications, setNotifications] = useState(3);
   const [showScanResults, setShowScanResults] = useState(false);
+  const [showAdvancedScan, setShowAdvancedScan] = useState(false);
   const [activeScans, setActiveScans] = useState<ScanResult[]>([]);
+  const [comprehensiveScans, setComprehensiveScans] = useState<
+    ComprehensiveScanResult[]
+  >([]);
+  const [scanMode, setScanMode] = useState<"quick" | "comprehensive">("quick");
   const [realtimeMetrics, setRealtimeMetrics] = useState({
     activeThreats: 3,
     systemsProtected: 847,
@@ -569,9 +579,14 @@ export default function Index() {
         </div>
       </main>
 
-      {/* Scan Results Modal */}
+      {/* Quick Scan Results Modal */}
       {showScanResults && (
         <ScanResults onClose={() => setShowScanResults(false)} />
+      )}
+
+      {/* Advanced Scanning Dashboard Modal */}
+      {showAdvancedScan && (
+        <ScanningDashboard onClose={() => setShowAdvancedScan(false)} />
       )}
     </div>
   );

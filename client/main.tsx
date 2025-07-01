@@ -11,6 +11,7 @@ import RedTeamActivity from "./pages/RedTeamActivity";
 import RiskAnalysis from "./pages/RiskAnalysis";
 import SecuritySettings from "./pages/SecuritySettings";
 import Reports from "./pages/Reports";
+import AdvancedScan from "./pages/AdvancedScan";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/risk-analysis" element={<RiskAnalysis />} />
           <Route path="/security-settings" element={<SecuritySettings />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/scan/:scanId" element={<AdvancedScan />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
