@@ -3,11 +3,18 @@ import DashboardCard from "@/components/DashboardCard";
 import CyberButton from "@/components/ui/cyber-button";
 import ScanResults from "@/components/ScanResults";
 import ScanningDashboard from "@/components/ScanningDashboard";
+import NotificationBell from "@/components/NotificationBell";
 import { scanningService, ScanResult } from "@/services/scanningService";
 import {
   advancedScanningService,
   ComprehensiveScanResult,
 } from "@/services/advancedScanningService";
+import { cveService } from "@/services/cveService";
+import {
+  subdomainService,
+  SubdomainEnumeration,
+} from "@/services/subdomainService";
+import { reportService } from "@/services/reportService";
 import {
   Shield,
   Activity,
