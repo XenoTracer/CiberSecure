@@ -33,6 +33,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState("");
